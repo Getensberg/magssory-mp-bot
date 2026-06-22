@@ -267,34 +267,70 @@ bot.on("message", async (msg) => {
   switch (state.step) {
     case STEP.NAME:
       state.name = text.trim();
-      state.step = STEP.PHONE;
+      state.step = STEP.PHONE; // теперь это просто ожидание контакта
       userStates.set(chatId, state);
-      await bot.sendMessage(chatId, "📞 Введите ваш *номер телефона*:", {
-        parse_mode: "Markdown",
-      });
-      break;
-
-    case STEP.PHONE:
-      state.phone = text.trim();
-      state.step = STEP.PLATFORM;
-      userStates.set(chatId, state);
-      await bot.sendMessage(chatId, "📱 *На какой Вы стороне?*", {
-        parse_mode: "Markdown",
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: "🍏 У меня Айфон", callback_data: "platform_iphone" },
-              { text: "🤖 У меня Андроид", callback_data: "platform_android" },
+      await bot.sendMessage(
+        chatId,
+        "📞 Нажмите кнопку ниже, чтобы поделиться вашим номером телефона:",
+        {
+          reply_markup: {
+            keyboard: [
+              [
+                {
+                  text: "📱 Поделиться номером телефона",
+                  request_contact: true,
+                },
+              ],
             ],
-          ],
+            one_time_keyboard: true,
+            resize_keyboard: true,
+          },
         },
-      });
+      );
       break;
 
     default:
       if (state.step !== STEP.START && state.step !== STEP.FINAL) {
         bot.sendMessage(chatId, "ℹ️ Пожалуйста, используйте кнопки на экране.");
       }
+  }
+});
+
+// Обработка контакта (кнопка "Поделиться номером телефона")
+bot.on("contact", async (msg) => {
+  const chatId = msg.chat.id;
+  const contact = msg.contact;
+  const state = getState(chatId);
+
+  if (state.step === STEP.PHONE && contact && contact.phone_number) {
+    state.phone = contact.phone_number;
+    state.step = STEP.PLATFORM;
+    userStates.set(chatId, state);
+
+    // Убираем кастомную клавиатуру с кнопкой контакта
+    await bot.sendMessage(chatId, "✅ Номер получен!", {
+      reply_markup: { remove_keyboard: true },
+    });
+    await bot.sendMessage(chatId, "📱 *На какой Вы стороне?*", {
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "🍏 У меня Айфон", callback_data: "platform_iphone" },
+            { text: "🤖 У меня Андроид", callback_data: "platform_android" },
+          ],
+        ],
+      },
+    });
+  } else {
+    // Если бот не ожидает контакт, просто удаляем клавиатуру
+    await bot.sendMessage(
+      chatId,
+      "ℹ️ Сейчас контакт не требуется. Продолжите по кнопкам.",
+      {
+        reply_markup: { remove_keyboard: true },
+      },
+    );
   }
 });
 
