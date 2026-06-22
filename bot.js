@@ -40,21 +40,12 @@ function getState(chatId) {
 }
 
 // Отправка в Google Sheets
-async function sendToSheet(name, phone, platform) {
-  try {
-    const response = await axios.post(GOOGLE_SHEETS_URL, {
-      name,
-      phone,
-      platform,
-    });
-    console.log("Ответ от Sheets:", response.data);
-  } catch (err) {
-    console.error("Ошибка отправки:", err.message);
-    bot.sendMessage(
-      chatId,
-      "⚠️ Не удалось сохранить данные, но квест продолжается.",
-    );
-  }
+function sendToSheet(name, phone, platform) {
+  // Не ждём ответа — просто отправляем и забываем
+  axios
+    .post(GOOGLE_SHEETS_URL, { name, phone, platform })
+    .then(() => console.log("Данные отправлены в таблицу"))
+    .catch((err) => console.error("Ошибка отправки в таблицу:", err.message));
 }
 
 // ================== /start ==================
@@ -128,7 +119,7 @@ bot.on("callback_query", async (query) => {
       case "platform_android":
         if (state.step !== STEP.PLATFORM) return;
         state.platform = data === "platform_iphone" ? "iPhone" : "Android";
-        await sendToSheet(state.name, state.phone, state.platform);
+        sendToSheet(state.name, state.phone, state.platform); // без await
         await bot.sendMessage(chatId, "✅ Отлично, полетели дальше.");
         // Старт викторины
         state.step = STEP.TEST_Q1;
