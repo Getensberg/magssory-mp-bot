@@ -80,6 +80,11 @@ bot.onText(/\/start/, (msg) => {
   });
 });
 
+bot.onText(/\/help/, (msg) => {
+  const chatId = msg.chat.id;
+  bot.sendMessage(chatId, "📞 Свяжитесь с нами: @Magssory_top");
+});
+
 // ================== Обработка кнопок ==================
 bot.on("callback_query", async (query) => {
   const chatId = query.message.chat.id;
@@ -229,10 +234,10 @@ bot.on("callback_query", async (query) => {
         state.step = STEP.FINAL;
         userStates.set(chatId, state);
         await bot.editMessageText(
-          '🎊 *Поздравляем!* Вы прошли квест "Вселенная Magssory" и присоединились к клубу избранных.\n\n' +
+          '*Поздравляем!* Вы прошли квест "Вселенная Magssory" и присоединились к клубу избранных.\n\n' +
             "Спасибо, что вы с нами — вы стали частью нашей вселенной аксессуаров и технологий.\n\n" +
             "*Ваша награда:*\n\n" +
-            "🎁 *Промокод: MAGSSORI20*\n" +
+            "🎁 *Промокод: MAGSSORY20*\n" +
             "(скидка 20% на любую покупку до 30.09.2026)\n\n" +
             "Следите за новыми заданиями, бонусами и анонсами в наших соцсетях и рассылке.",
           {
@@ -287,6 +292,41 @@ bot.on("message", async (msg) => {
           },
         },
       );
+      break;
+
+    case STEP.PHONE:
+      {
+        const phoneRegex = /^\+?\d{7,15}$/; // допускает + и от 7 до 15 цифр
+        if (!phoneRegex.test(text.trim())) {
+          await bot.sendMessage(
+            chatId,
+            "❌ Пожалуйста, введите корректный номер телефона (цифры, можно с +) или нажмите кнопку «Поделиться номером».",
+          );
+          return;
+        }
+        state.phone = text.trim();
+        state.step = STEP.PLATFORM;
+        userStates.set(chatId, state);
+
+        // убираем клавиатуру с кнопкой контакта
+        await bot.sendMessage(chatId, "✅ Номер получен!", {
+          reply_markup: { remove_keyboard: true },
+        });
+        await bot.sendMessage(chatId, "📱 *На какой Вы стороне?*", {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: "🍏 У меня Айфон", callback_data: "platform_iphone" },
+                {
+                  text: "🤖 У меня Андроид",
+                  callback_data: "platform_android",
+                },
+              ],
+            ],
+          },
+        });
+      }
       break;
 
     default:
